@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>山水连连看</title>
+  <style>
+    :root {
+      --bg-deep: #ead8ba;
+      --bg-soft: #f7f0e2;
+      --ink: #2f261f;
+      --muted: #6f5b4b;
+      --accent: #b84f38;
+      --accent-strong: #8f3522;
+      --accent-soft: #f0c79d;
+      --jade: #4f7a68;
+      --jade-soft: #8eb19f;
+      --gold: #c6923f;
+      --paper: rgba(255, 249, 240, 0.9);
+      --paper-strong: rgba(255, 252, 246, 0.96);
+      --line: rgba(87, 61, 44, 0.16);
+      --shadow: 0 24px 70px rgba(70, 40, 24, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 20px;
+      font-family: "STKaiti", "KaiTi", "Noto Serif SC", "Microsoft YaHei", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(255, 237, 205, 0.88), transparent 30%),
+        radial-gradient(circle at 88% 14%, rgba(143, 186, 167, 0.34), transparent 26%),
+        radial-gradient(circle at bottom right, rgba(184, 79, 56, 0.18), transparent 28%),
+        linear-gradient(145deg, #f8f4eb 0%, #ead7b5 52%, #e2c294 100%);
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      pointer-events: none;
+      inset: auto;
+      opacity: 0.55;
+      filter: blur(0.3px);
+    }
+
+    body::before {
+      top: 24px;
+      left: 24px;
+      width: min(30vw, 320px);
+      height: min(34vw, 360px);
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.66), transparent 35%),
+        linear-gradient(160deg, rgba(90, 128, 110, 0.32), transparent 60%);
+      clip-path: ellipse(48% 42% at 50% 50%);
+    }
+
+    body::after {
+      right: 24px;
+      bottom: 18px;
+      width: min(26vw, 260px);
+      height: min(24vw, 240px);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(187, 123, 80, 0.28), transparent 62%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 68%);
+      clip-path: polygon(18% 74%, 42% 24%, 58% 24%, 82% 74%);
+    }
+
+    .shell {
+      width: min(1220px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0)),
+        var(--paper);
+      border: 1px solid rgba(124, 91, 70, 0.18);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .side {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+    }
+
+    .side::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(184, 79, 56, 0.12);
+      border-radius: 24px;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(184, 79, 56, 0.12);
+      color: var(--accent-strong);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .title {
+      margin: 18px 0 12px;
+      font-size: clamp(36px, 5.4vw, 62px);
+      line-height: 0.95;
+      letter-spacing: 0.05em;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      padding: 16px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.52);
+      border: 1px solid rgba(109, 80, 59, 0.1);
+    }
+
+    .stat span {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      font-size: clamp(24px, 3.6vw, 32px);
+      color: var(--ink);
+    }
+
+    .scroll-note {
+      padding: 18px 18px 16px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(253, 244, 228, 0.76)),
+        var(--paper-strong);
+      border: 1px solid rgba(109, 80, 59, 0.12);
+    }
+
+    .scroll-note h2,
+    .level-block h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .tips {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 15px;
+    }
+
+    .level-block {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.46);
+      border: 1px solid rgba(109, 80, 59, 0.1);
+    }
+
+    .level-picker {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .level-btn,
+    .action-btn,
+    .overlay-btn,
+    .chip {
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+    }
+
+    .level-btn {
+      min-height: 48px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(109, 80, 59, 0.12);
+      color: var(--ink);
+    }
+
+    .level-btn.active {
+      background: linear-gradient(180deg, #d67e5d, #b84f38);
+      color: #fff7ef;
+      box-shadow: 0 14px 28px rgba(184, 79, 56, 0.28);
+    }
+
+    .level-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .level-btn:not(:disabled):hover,
+    .action-btn:hover,
+    .overlay-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 28px rgba(70, 40, 24, 0.14);
+    }
+
+    .board-panel {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .headline {
+      display: grid;
+      gap: 8px;
+    }
+
+    .headline strong {
+      font-size: clamp(26px, 4vw, 34px);
+    }
+
+    .headline span {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .action-btn,
+    .overlay-btn {
+      padding: 12px 18px;
+      border-radius: 16px;
+      min-height: 48px;
+    }
+
+    .action-btn.primary,
+    .overlay-btn {
+      background: linear-gradient(180deg, #d57252, #b84f38);
+      color: #fff7ef;
+    }
+
+    .action-btn.secondary {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(109, 80, 59, 0.12);
+      color: var(--ink);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.46;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chip {
+      min-height: 86px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(247, 237, 222, 0.82)),
+        var(--paper-strong);
+      border: 1px solid rgba(109, 80, 59, 0.1);
+      padding: 14px 16px;
+      text-align: left;
+      cursor: default;
+    }
+
+    .chip-label {
+      display: block;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .chip-value {
+      display: block;
+      font-size: clamp(24px, 3.6vw, 34px);
+    }
+
+    .note-bar {
+      min-height: 50px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(255, 250, 244, 0.72);
+      border: 1px solid rgba(109, 80, 59, 0.1);
+      color: var(--muted);
+    }
+
+    .note-bar.warning {
+      color: var(--accent-strong);
+      background: rgba(215, 130, 101, 0.14);
+      border-color: rgba(184, 79, 56, 0.18);
+    }
+
+    .board-wrap {
+      position: relative;
+      border-radius: 28px;
+      padding: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.18)),
+        rgba(255, 248, 238, 0.7);
+      border: 1px solid rgba(109, 80, 59, 0.12);
+      overflow: hidden;
+    }
+
+    .board-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(184, 79, 56, 0.1);
+      pointer-events: none;
+    }
+
+    .board-stage {
+      position: relative;
+    }
+
+    .board {
+      position: relative;
+      display: grid;
+      gap: 8px;
+      width: 100%;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .tile,
+    .tile-empty {
+      aspect-ratio: 1 / 1;
+      min-height: 44px;
+      border-radius: 18px;
+    }
+
+    .tile {
+      position: relative;
+      border: 1px solid rgba(124, 91, 70, 0.16);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 231, 206, 0.95));
+      color: var(--ink);
+      font-size: clamp(22px, 3vw, 32px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.88),
+        0 10px 16px rgba(90, 61, 38, 0.1);
+    }
+
+    .tile::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: 13px;
+      border: 1px solid rgba(198, 146, 63, 0.16);
+      pointer-events: none;
+    }
+
+    .tile:hover {
+      transform: translateY(-1px);
+    }
+
+    .tile.selected {
+      background: linear-gradient(180deg, #fef7ec, #f4d8b1);
+      border-color: rgba(198, 146, 63, 0.5);
+      box-shadow:
+        inset 0 0 0 2px rgba(198, 146, 63, 0.36),
+        0 16px 24px rgba(198, 146, 63, 0.24);
+    }
+
+    .tile.hint {
+      animation: glow 0.8s ease-in-out infinite alternate;
+    }
+
+    .tile.invalid {
+      animation: shake 0.24s ease;
+      border-color: rgba(184, 79, 56, 0.48);
+    }
+
+    .tile-empty {
+      border: 1px dashed rgba(124, 91, 70, 0.08);
+      background:
+        radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.45), transparent 56%),
+        rgba(255, 249, 240, 0.16);
+    }
+
+    .path-layer {
+      position: absolute;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .path-layer polyline {
+      fill: none;
+      stroke: var(--jade);
+      stroke-width: 10;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 10px rgba(79, 122, 104, 0.42));
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 18px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 28px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(43, 33, 27, 0.42), rgba(43, 33, 27, 0.62)),
+        rgba(48, 34, 24, 0.45);
+      color: #fff6ee;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-card {
+      max-width: 420px;
+      padding: 28px 24px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 251, 245, 0.2), rgba(255, 251, 245, 0.08));
+      border: 1px solid rgba(255, 242, 231, 0.22);
+      box-shadow: 0 24px 44px rgba(20, 14, 11, 0.2);
+    }
+
+    .overlay-kicker {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .overlay-title {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 5vw, 40px);
+      letter-spacing: 0.08em;
+    }
+
+    .overlay-text {
+      margin: 0 0 18px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: rgba(255, 246, 238, 0.88);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @keyframes glow {
+      from {
+        box-shadow:
+          inset 0 0 0 2px rgba(198, 146, 63, 0.2),
+          0 10px 18px rgba(198, 146, 63, 0.14);
+      }
+      to {
+        box-shadow:
+          inset 0 0 0 2px rgba(198, 146, 63, 0.45),
+          0 0 0 8px rgba(198, 146, 63, 0.16),
+          0 14px 24px rgba(198, 146, 63, 0.2);
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-3px);
+      }
+      75% {
+        transform: translateX(3px);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .hud {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 14px;
+      }
+
+      .side,
+      .board-panel {
+        padding: 18px;
+      }
+
+      .topbar,
+      .action-row,
+      .footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .action-row {
+        justify-content: stretch;
+      }
+
+      .action-row .action-btn {
+        width: 100%;
+      }
+
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .level-picker {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <aside class="side panel">
+      <div class="eyebrow">Shan Shui Link</div>
+      <h1 class="title">山水连连看</h1>
+      <p class="subtitle">
+        找回童年的乐趣！三重画境，逐关解局。沿着外框与空隙寻出两两呼应的牌面，
+        在倒计时走完之前清空棋盘，便可继续向下一卷山水前行。
+      </p>
+
+      <section class="stats" aria-label="游戏统计">
+        <div class="stat">
+          <span>最高分</span>
+          <strong id="best-score">0</strong>
+        </div>
+        <div class="stat">
+          <span>已解锁</span>
+          <strong id="unlocked-level">第 1 关</strong>
+        </div>
+      </section>
+
+      <section class="scroll-note">
+        <h2>游玩规则</h2>
+        <ol class="tips">
+          <li>选择两枚相同牌面，连线不超过两次转折即可消除。</li>
+          <li>路径可以借道棋盘外框，但不能穿过仍未消除的牌块。</li>
+          <li>每关有 3 次提示与 2 次手动洗牌，无解时会自动重排。</li>
+        </ol>
+      </section>
+
+      <section class="level-block">
+        <h2>关卡选卷</h2>
+        <div class="level-picker" id="level-picker"></div>
+      </section>
+    </aside>
+
+    <section class="board-panel panel">
+      <div class="topbar">
+        <div class="headline">
+          <strong id="level-name">第一关·春山初醒</strong>
+          <span id="level-desc">请在限定时间内清空棋盘。</span>
+        </div>
+        <div class="action-row">
+          <button class="action-btn primary" id="restart-btn" type="button">开始 / 重开</button>
+          <button class="action-btn secondary" id="hint-btn" type="button">提示</button>
+          <button class="action-btn secondary" id="shuffle-btn" type="button">洗牌</button>
+        </div>
+      </div>
+
+      <div class="hud" aria-label="关卡状态">
+        <div class="chip">
+          <span class="chip-label">当前关卡</span>
+          <span class="chip-value" id="current-level">1 / 3</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">当前得分</span>
+          <span class="chip-value" id="score">0</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">剩余时间</span>
+          <span class="chip-value" id="time-left">90</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">可消对数</span>
+          <span class="chip-value" id="pairs-left">24</span>
+        </div>
+        <div class="chip">
+          <span class="chip-label">提示 / 洗牌</span>
+          <span class="chip-value" id="assist-left">3 / 2</span>
+        </div>
+      </div>
+
+      <div class="note-bar" id="note-bar">
+        <span id="note-text">准备好后，开始第一卷山水。</span>
+        <span id="status-text">状态：行局未开</span>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board-stage">
+          <div class="board" id="board" aria-label="连连看棋盘"></div>
+          <svg class="path-layer" id="path-layer" aria-hidden="true"></svg>
+        </div>
+
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <div class="overlay-kicker" id="overlay-kicker">Scroll Opens</div>
+            <h2 class="overlay-title" id="overlay-title">山水连连看</h2>
+            <p class="overlay-text" id="overlay-text">点击下方按钮，进入第一关。</p>
+            <button class="overlay-btn" id="overlay-action" type="button">开始游玩</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span>消除一对得 20 分，过关额外获得剩余时间奖励。</span>
+        <span>支持桌面点击与移动端触控。</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TILE_SYMBOLS = ["扇", "灯", "玉", "竹", "鹤", "莲", "茶", "琴", "墨", "鼓", "梅", "兰", "锦", "月", "雨", "舟", "云", "松", "铃", "瓷"];
+
+    const LEVELS = [
+      { title: "第一关·春山初醒", subtitle: "6 × 8 棋盘，初入画境。", rows: 6, cols: 8, timeLimit: 90, hints: 3, shuffles: 2, symbolCount: 12 },
+      { title: "第二关·烟江铺锦", subtitle: "8 × 8 棋盘，节奏更紧。", rows: 8, cols: 8, timeLimit: 120, hints: 3, shuffles: 2, symbolCount: 16 },
+      { title: "第三关·月渡千峰", subtitle: "8 × 10 棋盘，终卷试锋。", rows: 8, cols: 10, timeLimit: 150, hints: 3, shuffles: 2, symbolCount: 20 }
+    ];
+
+    const BEST_SCORE_KEY = "llk-best-score";
+    const UNLOCKED_LEVEL_KEY = "llk-unlocked-level";
+    const MATCH_SCORE = 20;
+    const LEVEL_BONUS_FACTOR = 5;
+    const HINT_DURATION = 1000;
+    const PATH_DURATION = 240;
+    const START_OVERLAY_DURATION = 900;
+
+    const state = {
+      levelIndex: 0,
+      score: 0,
+      timeLeft: 0,
+      board: [],
+      selected: null,
+      hintsLeft: 0,
+      shufflesLeft: 0,
+      unlockedLevel: 0,
+      bestScore: 0,
+      status: "idle",
+      timerId: null,
+      hintIndices: [],
+      invalidIndices: [],
+      connectionPath: [],
+      overlayVisible: false,
+      pairsLeft: 0,
+      note: "准备好后，开始第一卷山水。",
+      noteWarning: false,
+      introToken: 0,
+      noticeToken: 0,
+      hintToken: 0,
+      invalidToken: 0
+    };
+
+    const boardEl = document.getElementById("board");
+    const pathLayerEl = document.getElementById("path-layer");
+    const overlayEl = document.getElementById("overlay");
+    const overlayKickerEl = document.getElementById("overlay-kicker");
+    const overlayTitleEl = document.getElementById("overlay-title");
+    const overlayTextEl = document.getElementById("overlay-text");
+    const overlayActionEl = document.getElementById("overlay-action");
+    const levelPickerEl = document.getElementById("level-picker");
+    const levelNameEl = document.getElementById("level-name");
+    const levelDescEl = document.getElementById("level-desc");
+    const scoreEl = document.getElementById("score");
+    const bestScoreEl = document.getElementById("best-score");
+    const unlockedLevelEl = document.getElementById("unlocked-level");
+    const currentLevelEl = document.getElementById("current-level");
+    const timeLeftEl = document.getElementById("time-left");
+    const pairsLeftEl = document.getElementById("pairs-left");
+    const assistLeftEl = document.getElementById("assist-left");
+    const noteBarEl = document.getElementById("note-bar");
+    const noteTextEl = document.getElementById("note-text");
+    const statusTextEl = document.getElementById("status-text");
+    const restartBtn = document.getElementById("restart-btn");
+    const hintBtn = document.getElementById("hint-btn");
+    const shuffleBtn = document.getElementById("shuffle-btn");
+
+    function loadProgress() {
+      const savedBest = Number(localStorage.getItem(BEST_SCORE_KEY));
+      const savedUnlocked = Number(localStorage.getItem(UNLOCKED_LEVEL_KEY));
+      state.bestScore = Number.isFinite(savedBest) && savedBest > 0 ? savedBest : 0;
+      state.unlockedLevel = Number.isFinite(savedUnlocked) && savedUnlocked >= 0
+        ? Math.min(savedUnlocked, LEVELS.length - 1)
+        : 0;
+    }
+
+    function saveProgress() {
+      localStorage.setItem(BEST_SCORE_KEY, String(state.bestScore));
+      localStorage.setItem(UNLOCKED_LEVEL_KEY, String(state.unlockedLevel));
+    }
+
+    function shuffleArray(items) {
+      for (let index = items.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [items[index], items[swapIndex]] = [items[swapIndex], items[index]];
+      }
+      return items;
+    }
+
+    function getLevelConfig(levelIndex = state.levelIndex) {
+      return LEVELS[levelIndex];
+    }
+
+    function indexToCoord(index, levelConfig = getLevelConfig()) {
+      return {
+        row: Math.floor(index / levelConfig.cols),
+        col: index % levelConfig.cols
+      };
+    }
+
+    function toExtendedCoord(index, levelConfig = getLevelConfig()) {
+      const { row, col } = indexToCoord(index, levelConfig);
+      return { row: row + 1, col: col + 1 };
+    }
+
+    function isInBounds(row, col, levelConfig = getLevelConfig()) {
+      return row >= 0 && row <= levelConfig.rows + 1 && col >= 0 && col <= levelConfig.cols + 1;
+    }
+
+    function createExtendedGrid(board, levelConfig = getLevelConfig()) {
+      const grid = Array.from({ length: levelConfig.rows + 2 }, () => Array(levelConfig.cols + 2).fill(null));
+      for (let row = 0; row < levelConfig.rows; row += 1) {
+        for (let col = 0; col < levelConfig.cols; col += 1) {
+          grid[row + 1][col + 1] = board[row * levelConfig.cols + col];
+        }
+      }
+      return grid;
+    }
+
+    function clearLine(grid, start, end) {
+      if (start.row === end.row) {
+        const step = start.col < end.col ? 1 : -1;
+        for (let col = start.col + step; col !== end.col; col += step) {
+          if (grid[start.row][col] !== null) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      if (start.col === end.col) {
+        const step = start.row < end.row ? 1 : -1;
+        for (let row = start.row + step; row !== end.row; row += step) {
+          if (grid[row][start.col] !== null) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      return false;
+    }
+
+    function isCornerEmpty(grid, corner, start, end) {
+      if ((corner.row === start.row && corner.col === start.col) || (corner.row === end.row && corner.col === end.col)) {
+        return true;
+      }
+      return grid[corner.row][corner.col] === null;
+    }
+
+    function findSimplePath(grid, start, end) {
+      if (clearLine(grid, start, end)) {
+        return [start, end];
+      }
+
+      const corners = [
+        { row: start.row, col: end.col },
+        { row: end.row, col: start.col }
+      ];
+
+      for (const corner of corners) {
+        if (!isCornerEmpty(grid, corner, start, end)) {
+          continue;
+        }
+        if (clearLine(grid, start, corner) && clearLine(grid, corner, end)) {
+          return [start, corner, end];
+        }
+      }
+
+      return null;
+    }
+
+    function compressPath(points) {
+      const compact = [];
+      for (const point of points) {
+        const previous = compact[compact.length - 1];
+        if (!previous || previous.row !== point.row || previous.col !== point.col) {
+          compact.push(point);
+        }
+      }
+
+      const result = [];
+      for (const point of compact) {
+        if (result.length < 2) {
+          result.push(point);
+          continue;
+        }
+
+        const last = result[result.length - 1];
+        const beforeLast = result[result.length - 2];
+        const sameRow = beforeLast.row === last.row && last.row === point.row;
+        const sameCol = beforeLast.col === last.col && last.col === point.col;
+        if (sameRow || sameCol) {
+          result[result.length - 1] = point;
+        } else {
+          result.push(point);
+        }
+      }
+
+      return result;
+    }
+
+    function findPath(board, firstIndex, secondIndex, levelConfig = getLevelConfig()) {
+      if (
+        firstIndex === secondIndex ||
+        board[firstIndex] === null ||
+        board[secondIndex] === null ||
+        board[firstIndex] !== board[secondIndex]
+      ) {
+        return null;
+      }
+
+      const grid = createExtendedGrid(board, levelConfig);
+      const start = toExtendedCoord(firstIndex, levelConfig);
+      const end = toExtendedCoord(secondIndex, levelConfig);
+      const directPath = findSimplePath(grid, start, end);
+      if (directPath) {
+        return compressPath(directPath);
+      }
+
+      const directions = [
+        { row: -1, col: 0 },
+        { row: 1, col: 0 },
+        { row: 0, col: -1 },
+        { row: 0, col: 1 }
+      ];
+
+      for (const direction of directions) {
+        let nextRow = start.row + direction.row;
+        let nextCol = start.col + direction.col;
+
+        while (isInBounds(nextRow, nextCol, levelConfig)) {
+          const isEnd = nextRow === end.row && nextCol === end.col;
+          if (!isEnd && grid[nextRow][nextCol] !== null) {
+            break;
+          }
+
+          const pivot = { row: nextRow, col: nextCol };
+          const tailPath = findSimplePath(grid, pivot, end);
+          if (tailPath) {
+            return compressPath([start, ...tailPath]);
+          }
+
+          nextRow += direction.row;
+          nextCol += direction.col;
+        }
+      }
+
+      return null;
+    }
+
+    function countRemainingPairs(board = state.board) {
+      return board.reduce((total, tile) => total + (tile ? 1 : 0), 0) / 2;
+    }
+
+    function findHintPair(board = state.board, levelConfig = getLevelConfig()) {
+      const symbolMap = new Map();
+      board.forEach((tile, index) => {
+        if (!tile) {
+          return;
+        }
+        if (!symbolMap.has(tile)) {
+          symbolMap.set(tile, []);
+        }
+        symbolMap.get(tile).push(index);
+      });
+
+      for (const indexes of symbolMap.values()) {
+        for (let left = 0; left < indexes.length; left += 1) {
+          for (let right = left + 1; right < indexes.length; right += 1) {
+            const path = findPath(board, indexes[left], indexes[right], levelConfig);
+            if (path) {
+              return { a: indexes[left], b: indexes[right], path };
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function buildBoardFromValues(templateBoard, values) {
+      const board = templateBoard.slice();
+      let valueIndex = 0;
+      board.forEach((tile, index) => {
+        if (tile !== null) {
+          board[index] = values[valueIndex];
+          valueIndex += 1;
+        }
+      });
+      return board;
+    }
+
+    function generateBoard(levelConfig) {
+      const totalCells = levelConfig.rows * levelConfig.cols;
+      const symbolPool = TILE_SYMBOLS.slice(0, levelConfig.symbolCount);
+      const values = symbolPool.flatMap((symbol) => [symbol, symbol, symbol, symbol]);
+      const templateBoard = Array(totalCells).fill("__slot__");
+      let candidate = values.slice();
+      let attempts = 0;
+
+      do {
+        candidate = shuffleArray(candidate.slice());
+        const board = buildBoardFromValues(templateBoard, candidate);
+        if (findHintPair(board, levelConfig)) {
+          return board;
+        }
+        attempts += 1;
+      } while (attempts < 150);
+
+      return buildBoardFromValues(templateBoard, shuffleArray(values.slice()));
+    }
+
+    function updateBestScore() {
+      if (state.score > state.bestScore) {
+        state.bestScore = state.score;
+        saveProgress();
+      }
+    }
+
+    function updateUnlockedLevel(nextIndex) {
+      if (nextIndex > state.unlockedLevel) {
+        state.unlockedLevel = Math.min(nextIndex, LEVELS.length - 1);
+        saveProgress();
+      }
+    }
+
+    function setNote(message, isWarning = false, keepMs = 2200) {
+      state.note = message;
+      state.noteWarning = isWarning;
+      renderNote();
+
+      if (!keepMs) {
+        return;
+      }
+
+      const noticeToken = ++state.noticeToken;
+      window.setTimeout(() => {
+        if (noticeToken !== state.noticeToken) {
+          return;
+        }
+        state.note = "沿着空路寻找相同牌面。";
+        state.noteWarning = false;
+        renderNote();
+      }, keepMs);
+    }
+
+    function renderNote() {
+      noteTextEl.textContent = state.note;
+      noteBarEl.classList.toggle("warning", state.noteWarning);
+      const statusMap = {
+        idle: "状态：行局未开",
+        playing: "状态：游玩中",
+        animating: "状态：消除中",
+        failed: "状态：本关失败",
+        complete: "状态：全卷通关"
+      };
+      statusTextEl.textContent = statusMap[state.status] || "状态：准备中";
+    }
+
+    function stopTimer() {
+      window.clearInterval(state.timerId);
+      state.timerId = null;
+    }
+
+    function tickTimer() {
+      if (state.status !== "playing") {
+        return;
+      }
+
+      state.timeLeft = Math.max(0, state.timeLeft - 1);
+      renderHUD();
+
+      if (state.timeLeft === 0) {
+        handleLevelFailure();
+      }
+    }
+
+    function showOverlay({ kicker, title, text, actionLabel, onAction, persistent = true }) {
+      overlayKickerEl.textContent = kicker;
+      overlayTitleEl.textContent = title;
+      overlayTextEl.textContent = text;
+      overlayActionEl.textContent = actionLabel;
+      overlayActionEl.hidden = !actionLabel;
+      overlayActionEl.onclick = onAction || null;
+      overlayEl.classList.add("visible");
+      state.overlayVisible = true;
+
+      if (!persistent) {
+        overlayActionEl.hidden = true;
+      }
+    }
+
+    function hideOverlay() {
+      overlayEl.classList.remove("visible");
+      state.overlayVisible = false;
+      overlayActionEl.onclick = null;
+      overlayActionEl.hidden = false;
+    }
+
+    function showTransientOverlay(levelConfig) {
+      const introToken = ++state.introToken;
+      showOverlay({
+        kicker: `Chapter ${state.levelIndex + 1}`,
+        title: levelConfig.title,
+        text: `棋盘 ${levelConfig.rows} × ${levelConfig.cols} · 倒计时 ${levelConfig.timeLimit} 秒`,
+        actionLabel: "",
+        onAction: null,
+        persistent: false
+      });
+
+      window.setTimeout(() => {
+        if (introToken !== state.introToken || state.status !== "playing") {
+          return;
+        }
+        hideOverlay();
+      }, START_OVERLAY_DURATION);
+    }
+
+    function renderLevelButtons() {
+      levelPickerEl.innerHTML = "";
+
+      LEVELS.forEach((level, index) => {
+        const button = document.createElement("button");
+        button.className = "level-btn";
+        button.type = "button";
+        button.textContent = `第 ${index + 1} 关`;
+        button.disabled = index > state.unlockedLevel;
+        button.classList.toggle("active", index === state.levelIndex);
+        button.addEventListener("click", () => {
+          if (index > state.unlockedLevel) {
+            return;
+          }
+          startLevel(index, { resetScore: true });
+        });
+        levelPickerEl.appendChild(button);
+      });
+    }
+
+    function renderHUD() {
+      const levelConfig = getLevelConfig();
+      levelNameEl.textContent = levelConfig.title;
+      levelDescEl.textContent = levelConfig.subtitle;
+      currentLevelEl.textContent = `${state.levelIndex + 1} / ${LEVELS.length}`;
+      scoreEl.textContent = String(state.score);
+      bestScoreEl.textContent = String(state.bestScore);
+      unlockedLevelEl.textContent = `第 ${state.unlockedLevel + 1} 关`;
+      timeLeftEl.textContent = String(state.timeLeft);
+      pairsLeftEl.textContent = String(state.pairsLeft);
+      assistLeftEl.textContent = `${state.hintsLeft} / ${state.shufflesLeft}`;
+      hintBtn.disabled = state.status !== "playing" || state.hintsLeft <= 0;
+      shuffleBtn.disabled = state.status !== "playing" || state.shufflesLeft <= 0;
+      renderNote();
+    }
+
+    function renderPath() {
+      pathLayerEl.innerHTML = "";
+
+      if (!state.connectionPath.length) {
+        pathLayerEl.style.width = "0";
+        pathLayerEl.style.height = "0";
+        return;
+      }
+
+      const levelConfig = getLevelConfig();
+      const boardRect = boardEl.getBoundingClientRect();
+      const tileWidth = boardRect.width / levelConfig.cols;
+      const tileHeight = boardRect.height / levelConfig.rows;
+      const padX = tileWidth / 2;
+      const padY = tileHeight / 2;
+      const width = boardRect.width + padX * 2;
+      const height = boardRect.height + padY * 2;
+
+      pathLayerEl.style.left = `${-padX}px`;
+      pathLayerEl.style.top = `${-padY}px`;
+      pathLayerEl.style.width = `${width}px`;
+      pathLayerEl.style.height = `${height}px`;
+      pathLayerEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+      const points = state.connectionPath
+        .map((point) => {
+          const x = padX + (point.col - 0.5) * tileWidth;
+          const y = padY + (point.row - 0.5) * tileHeight;
+          return `${x},${y}`;
+        })
+        .join(" ");
+
+      const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      polyline.setAttribute("points", points);
+      pathLayerEl.appendChild(polyline);
+    }
+
+    function renderBoard() {
+      const levelConfig = getLevelConfig();
+      boardEl.innerHTML = "";
+      boardEl.style.gridTemplateColumns = `repeat(${levelConfig.cols}, minmax(0, 1fr))`;
+
+      state.board.forEach((tile, index) => {
+        if (!tile) {
+          const emptyCell = document.createElement("div");
+          emptyCell.className = "tile-empty";
+          boardEl.appendChild(emptyCell);
+          return;
+        }
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tile";
+        button.textContent = tile;
+        button.setAttribute("aria-label", `第 ${Math.floor(index / levelConfig.cols) + 1} 行第 ${index % levelConfig.cols + 1} 列，牌面 ${tile}`);
+        button.classList.toggle("selected", index === state.selected);
+        button.classList.toggle("hint", state.hintIndices.includes(index));
+        button.classList.toggle("invalid", state.invalidIndices.includes(index));
+        button.addEventListener("click", () => handleTileClick(index));
+        boardEl.appendChild(button);
+      });
+
+      renderPath();
+    }
+
+    function renderAll() {
+      renderLevelButtons();
+      renderHUD();
+      renderBoard();
+    }
+
+    function startLevel(levelIndex, options = {}) {
+      const { resetScore = true } = options;
+      const levelConfig = LEVELS[levelIndex];
+
+      stopTimer();
+      state.levelIndex = levelIndex;
+      state.selected = null;
+      state.hintIndices = [];
+      state.invalidIndices = [];
+      state.connectionPath = [];
+      state.board = generateBoard(levelConfig);
+      state.timeLeft = levelConfig.timeLimit;
+      state.hintsLeft = levelConfig.hints;
+      state.shufflesLeft = levelConfig.shuffles;
+      state.status = "playing";
+      state.pairsLeft = countRemainingPairs(state.board);
+
+      if (resetScore) {
+        state.score = 0;
+      }
+
+      setNote(`已进入 ${levelConfig.title}。`, false, 1600);
+      renderAll();
+      showTransientOverlay(levelConfig);
+
+      state.timerId = window.setInterval(tickTimer, 1000);
+    }
+
+    function resolveBoardAfterShuffle(nextBoard, consume, reason) {
+      state.board = nextBoard;
+      state.selected = null;
+      state.hintIndices = [];
+      state.invalidIndices = [];
+      state.connectionPath = [];
+      state.pairsLeft = countRemainingPairs(state.board);
+      if (consume) {
+        state.shufflesLeft -= 1;
+      }
+      renderAll();
+      setNote(reason === "auto" ? "牌局无解，已自动洗牌。" : "牌面已重新洗开。", false, 1800);
+      return true;
+    }
+
+    function shuffleRemainingTiles(consume = true, reason = "manual") {
+      if (state.status !== "playing") {
+        return false;
+      }
+
+      if (consume && state.shufflesLeft <= 0) {
+        setNote("本关手动洗牌次数已用尽。", true);
+        return false;
+      }
+
+      const positions = [];
+      const values = [];
+      state.board.forEach((tile, index) => {
+        if (!tile) {
+          return;
+        }
+        positions.push(index);
+        values.push(tile);
+      });
+
+      if (values.length < 2) {
+        return false;
+      }
+
+      let attempts = 0;
+      while (attempts < 150) {
+        const nextValues = shuffleArray(values.slice());
+        const nextBoard = state.board.slice();
+        positions.forEach((position, index) => {
+          nextBoard[position] = nextValues[index];
+        });
+
+        if (findHintPair(nextBoard)) {
+          return resolveBoardAfterShuffle(nextBoard, consume, reason);
+        }
+        attempts += 1;
+      }
+
+      return resolveBoardAfterShuffle(state.board.slice(), consume, reason);
+    }
+
+    function flashInvalid(indices) {
+      state.invalidIndices = indices.slice();
+      renderBoard();
+      const invalidToken = ++state.invalidToken;
+      window.setTimeout(() => {
+        if (invalidToken !== state.invalidToken) {
+          return;
+        }
+        state.invalidIndices = [];
+        renderBoard();
+      }, 260);
+    }
+
+    function clearMatchedPair(path, pairIndexes = []) {
+      state.status = "animating";
+      state.connectionPath = path;
+      renderAll();
+
+      window.setTimeout(() => {
+        pairIndexes.forEach((index) => {
+          state.board[index] = null;
+        });
+
+        state.score += MATCH_SCORE;
+        state.selected = null;
+        state.connectionPath = [];
+        state.hintIndices = [];
+        state.invalidIndices = [];
+        state.status = "playing";
+        state.pairsLeft = countRemainingPairs(state.board);
+        updateBestScore();
+        renderAll();
+
+        if (state.pairsLeft === 0) {
+          handleLevelClear();
+          return;
+        }
+
+        if (!findHintPair(state.board)) {
+          shuffleRemainingTiles(false, "auto");
+        }
+      }, PATH_DURATION);
+    }
+
+    function handleTileClick(index) {
+      if (state.status !== "playing" || state.board[index] === null) {
+        return;
+      }
+
+      if (state.selected === null) {
+        state.selected = index;
+        renderBoard();
+        return;
+      }
+
+      if (state.selected === index) {
+        state.selected = null;
+        renderBoard();
+        return;
+      }
+
+      const firstIndex = state.selected;
+      const firstTile = state.board[firstIndex];
+      const secondTile = state.board[index];
+
+      if (firstTile !== secondTile) {
+        state.selected = index;
+        renderBoard();
+        return;
+      }
+
+      const path = findPath(state.board, firstIndex, index);
+      if (!path) {
+        state.selected = null;
+        flashInvalid([firstIndex, index]);
+        setNote("这两枚牌暂时无法连通。", true, 1800);
+        return;
+      }
+
+      clearMatchedPair(path, [firstIndex, index]);
+    }
+
+    function highlightHintPair() {
+      if (state.status !== "playing") {
+        return;
+      }
+
+      if (state.hintsLeft <= 0) {
+        setNote("本关提示次数已用尽。", true);
+        return;
+      }
+
+      let hint = findHintPair(state.board);
+      if (!hint) {
+        shuffleRemainingTiles(false, "auto");
+        hint = findHintPair(state.board);
+      }
+
+      if (!hint) {
+        setNote("当前暂时无法找到可提示的牌。", true);
+        return;
+      }
+
+      state.hintsLeft -= 1;
+      state.hintIndices = [hint.a, hint.b];
+      renderAll();
+      setNote("已为你点亮一组可消除牌。", false, 1600);
+
+      const hintToken = ++state.hintToken;
+      window.setTimeout(() => {
+        if (hintToken !== state.hintToken) {
+          return;
+        }
+        state.hintIndices = [];
+        renderBoard();
+        renderHUD();
+      }, HINT_DURATION);
+    }
+
+    function handleLevelFailure() {
+      stopTimer();
+      state.status = "failed";
+      renderAll();
+      showOverlay({
+        kicker: "Time Out",
+        title: "水墨未尽",
+        text: `第 ${state.levelIndex + 1} 关挑战失败，当前得分 ${state.score}。`,
+        actionLabel: "重试本关",
+        onAction: () => {
+          hideOverlay();
+          startLevel(state.levelIndex, { resetScore: true });
+        }
+      });
+      setNote("时间已尽，请重新布阵。", true, 2400);
+    }
+
+    function handleLevelClear() {
+      stopTimer();
+      const bonus = state.timeLeft * LEVEL_BONUS_FACTOR;
+      state.score += bonus;
+      updateBestScore();
+      renderAll();
+
+      const nextLevel = state.levelIndex + 1;
+      if (nextLevel < LEVELS.length) {
+        updateUnlockedLevel(nextLevel);
+        renderLevelButtons();
+        showOverlay({
+          kicker: "Chapter Clear",
+          title: `${LEVELS[state.levelIndex].title} 已通关`,
+          text: `本关时间奖励 ${bonus} 分，当前总分 ${state.score}。`,
+          actionLabel: `进入第 ${nextLevel + 1} 关`,
+          onAction: () => {
+            hideOverlay();
+            startLevel(nextLevel, { resetScore: false });
+          }
+        });
+        setNote("卷轴翻页，下一关将继续累积分数。", false, 2200);
+        return;
+      }
+
+      state.status = "complete";
+      updateUnlockedLevel(LEVELS.length - 1);
+      renderAll();
+      showOverlay({
+        kicker: "Victory",
+        title: "千峰尽览",
+        text: `终卷已成，时间奖励 ${bonus} 分，总得分 ${state.score}。`,
+        actionLabel: "再开新局",
+        onAction: () => {
+          hideOverlay();
+          startLevel(0, { resetScore: true });
+        }
+      });
+      setNote("恭喜通关，山水三卷已全部点亮。", false, 2600);
+    }
+
+    function initGame() {
+      loadProgress();
+      renderLevelButtons();
+      renderHUD();
+      renderBoard();
+
+      restartBtn.addEventListener("click", () => startLevel(state.levelIndex, { resetScore: true }));
+      hintBtn.addEventListener("click", highlightHintPair);
+      shuffleBtn.addEventListener("click", () => shuffleRemainingTiles(true, "manual"));
+      overlayActionEl.addEventListener("click", () => {});
+
+      startLevel(Math.min(state.unlockedLevel, LEVELS.length - 1), { resetScore: true });
+    }
+
+    window.addEventListener("resize", () => {
+      renderPath();
+    });
+
+    window.__LLK__ = {
+      TILE_SYMBOLS,
+      LEVELS,
+      state,
+      startLevel,
+      findPath,
+      findHintPair,
+      shuffleRemainingTiles,
+      generateBoard
+    };
+
+    initGame();
+  </script>
+</body>
+</html>
